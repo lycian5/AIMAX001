@@ -40,6 +40,18 @@ def clean_html(text):
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
+def normalize_query(query):
+    """유튜브 채널 URL이나 일반 URL에서 검색 키워드를 추출"""
+    # https://www.youtube.com/@channelname 또는 /c/channelname 형태
+    match = re.search(r"youtube\.com/(?:@|c/|channel/)([^/?&\s]+)", query)
+    if match:
+        return match.group(1).replace("-", " ").replace("_", " ")
+    # 일반 URL인 경우 URL 제거
+    if query.startswith("http"):
+        return re.sub(r"https?://\S+", "", query).strip()
+    return query
+
+
 def search_naver_news(query):
     resp = requests.get(
         "https://openapi.naver.com/v1/search/news.json",
@@ -104,16 +116,17 @@ def search():
     if not query:
         return jsonify({"error": "검색어를 입력해주세요."}), 400
 
+    search_keyword = normalize_query(query)
     materials = []
     errors = []
 
     try:
-        materials.extend(search_naver_news(query))
+        materials.extend(search_naver_news(search_keyword))
     except Exception as e:
         errors.append(f"네이버 뉴스 오류: {str(e)}")
 
     try:
-        materials.extend(search_youtube(query))
+        materials.extend(search_youtube(search_keyword))
     except Exception as e:
         errors.append(f"유튜브 오류: {str(e)}")
 
