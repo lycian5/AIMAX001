@@ -9,11 +9,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-NAVER_CLIENT_ID = os.environ.get("NAVER_CLIENT_ID")
-NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET")
-YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
-
 ARTICLE_SYSTEM_PROMPT = """당신은 한국 인터넷 신문사의 전문 기자 AI입니다.
 
 기사 작성 규칙:
@@ -34,6 +29,13 @@ ARTICLE_SYSTEM_PROMPT = """당신은 한국 인터넷 신문사의 전문 기자
 - (출처명): (URL)"""
 
 
+def get_openai_client():
+    key = os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ValueError("OPENAI_API_KEY 환경변수가 설정되지 않았습니다.")
+    return OpenAI(api_key=key)
+
+
 def clean_html(text):
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
@@ -42,8 +44,8 @@ def search_naver_news(query):
     resp = requests.get(
         "https://openapi.naver.com/v1/search/news.json",
         headers={
-            "X-Naver-Client-Id": NAVER_CLIENT_ID,
-            "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
+            "X-Naver-Client-Id": os.environ.get("NAVER_CLIENT_ID", ""),
+            "X-Naver-Client-Secret": os.environ.get("NAVER_CLIENT_SECRET", ""),
         },
         params={"query": query, "display": 7, "sort": "date"},
         timeout=10,
@@ -65,7 +67,7 @@ def search_youtube(query):
     resp = requests.get(
         "https://www.googleapis.com/youtube/v3/search",
         params={
-            "key": YOUTUBE_API_KEY,
+            "key": os.environ.get("YOUTUBE_API_KEY", ""),
             "q": query,
             "part": "snippet",
             "type": "video",
@@ -136,7 +138,8 @@ def generate():
     source_label = "유튜브 영상" if source_type == "youtube" else "뉴스 기사"
 
     try:
-        response = openai_client.chat.completions.create(
+        client = get_openai_client()
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": ARTICLE_SYSTEM_PROMPT},
@@ -155,11 +158,10 @@ def generate():
         article_text = response.choices[0].message.content or ""
         return jsonify({"article": article_text, "sources": [material_url]})
 
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
-        error_msg = str(e)
-        if "api_key" in error_msg.lower() or "authentication" in error_msg.lower():
-            return jsonify({"error": "OpenAI API 키가 올바르지 않습니다. .env 파일의 OPENAI_API_KEY를 확인해주세요."}), 500
-        return jsonify({"error": f"기사 생성 중 오류: {error_msg}"}), 500
+        return jsonify({"error": f"기사 생성 중 오류: {str(e)}"}), 500
 
 
 if __name__ == "__main__":
