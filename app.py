@@ -40,13 +40,33 @@ def clean_html(text):
     return re.sub(r"<[^>]+>", "", text or "").strip()
 
 
-def normalize_query(query):
-    """유튜브 채널 URL이나 일반 URL에서 검색 키워드를 추출"""
-    # https://www.youtube.com/@channelname 또는 /c/channelname 형태
+def extract_youtube_channel(query):
+    """유튜브 채널 URL이면 (handle, keyword) 반환, 아니면 (None, query)"""
     match = re.search(r"youtube\.com/(?:@|c/|channel/)([^/?&\s]+)", query)
-    if match:
-        return match.group(1).replace("-", " ").replace("_", " ")
-    # 일반 URL인 경우 URL 제거
+    if not match:
+        return None, query
+    handle = match.group(1)
+    keyword = re.sub(r"https?://\S+", "", query).strip()
+    return handle, keyword
+
+
+def get_youtube_channel_id(handle):
+    """채널 핸들에서 채널 ID 조회"""
+    resp = requests.get(
+        "https://www.googleapis.com/youtube/v3/channels",
+        params={
+            "key": os.environ.get("YOUTUBE_API_KEY", ""),
+            "forHandle": handle,
+            "part": "id",
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+    items = resp.json().get("items", [])
+    return items[0]["id"] if items else None
+
+
+def normalize_query(query):
     if query.startswith("http"):
         return re.sub(r"https?://\S+", "", query).strip()
     return query
@@ -75,18 +95,22 @@ def search_naver_news(query):
     return results
 
 
-def search_youtube(query):
+def search_youtube(query, channel_id=None):
+    params = {
+        "key": os.environ.get("YOUTUBE_API_KEY", ""),
+        "part": "snippet",
+        "type": "video",
+        "maxResults": 4,
+        "relevanceLanguage": "ko",
+        "order": "date",
+    }
+    if query:
+        params["q"] = query
+    if channel_id:
+        params["channelId"] = channel_id
     resp = requests.get(
         "https://www.googleapis.com/youtube/v3/search",
-        params={
-            "key": os.environ.get("YOUTUBE_API_KEY", ""),
-            "q": query,
-            "part": "snippet",
-            "type": "video",
-            "maxResults": 4,
-            "relevanceLanguage": "ko",
-            "order": "date",
-        },
+        params=params,
         timeout=10,
     )
     resp.raise_for_status()
@@ -116,19 +140,31 @@ def search():
     if not query:
         return jsonify({"error": "검색어를 입력해주세요."}), 400
 
+    yt_handle, yt_keyword = extract_youtube_channel(query)
     search_keyword = normalize_query(query)
     materials = []
     errors = []
 
-    try:
-        materials.extend(search_naver_news(search_keyword))
-    except Exception as e:
-        errors.append(f"네이버 뉴스 오류: {str(e)}")
+    # 유튜브 채널 URL인 경우: 채널 내부에서만 검색
+    if yt_handle:
+        try:
+            channel_id = get_youtube_channel_id(yt_handle)
+            if not channel_id:
+                errors.append(f"채널을 찾을 수 없습니다: {yt_handle}")
+            else:
+                materials.extend(search_youtube(yt_keyword, channel_id=channel_id))
+        except Exception as e:
+            errors.append(f"유튜브 채널 오류: {str(e)}")
+    else:
+        try:
+            materials.extend(search_naver_news(search_keyword))
+        except Exception as e:
+            errors.append(f"네이버 뉴스 오류: {str(e)}")
 
-    try:
-        materials.extend(search_youtube(search_keyword))
-    except Exception as e:
-        errors.append(f"유튜브 오류: {str(e)}")
+        try:
+            materials.extend(search_youtube(search_keyword))
+        except Exception as e:
+            errors.append(f"유튜브 오류: {str(e)}")
 
     if not materials:
         return jsonify({"error": "검색 결과가 없습니다. " + " / ".join(errors)}), 404
