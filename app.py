@@ -69,9 +69,15 @@ def get_youtube_channel_id(handle):
 
 
 def normalize_query(query):
-    if query.startswith("http"):
-        return re.sub(r"https?://\S+", "", query).strip()
-    return query
+    if not query.startswith("http"):
+        return query
+    # URL 외 텍스트가 있으면 그것을 키워드로 사용
+    keyword = re.sub(r"https?://\S+", "", query).strip()
+    if not keyword:
+        # URL만 입력된 경우: 도메인명을 키워드로 추출
+        m = re.search(r"https?://(?:www\.)?([^/?#\s]+)", query)
+        keyword = m.group(1) if m else ""
+    return keyword
 
 
 def get_date_range(period):
@@ -199,10 +205,11 @@ def search():
         except Exception as e:
             errors.append(f"유튜브 채널 오류: {str(e)}")
     else:
-        try:
-            materials.extend(search_naver_news(search_keyword, after=after, before=before))
-        except Exception as e:
-            errors.append(f"네이버 뉴스 오류: {str(e)}")
+        if search_keyword:
+            try:
+                materials.extend(search_naver_news(search_keyword, after=after, before=before))
+            except Exception as e:
+                errors.append(f"네이버 뉴스 오류: {str(e)}")
 
         try:
             materials.extend(search_youtube(search_keyword, after=after, before=before))
