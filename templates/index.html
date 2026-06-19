@@ -87,25 +87,6 @@
       margin-bottom: 8px;
     }
 
-    textarea {
-      width: 100%; padding: 12px 14px;
-      border: 1.5px solid #d1d5db; border-radius: 8px;
-      font-size: 15px; font-family: inherit;
-      resize: vertical; min-height: 72px; line-height: 1.5;
-      transition: border-color 0.2s;
-    }
-
-    textarea:focus { outline: none; border-color: #1a56db; }
-
-    .hints { margin-top: 8px; font-size: 12px; color: #6b7280; }
-    .hints span {
-      display: inline-block;
-      background: #f3f4f6; border-radius: 4px;
-      padding: 2px 8px; margin: 2px 2px;
-      cursor: pointer; transition: background 0.15s;
-    }
-    .hints span:hover { background: #e5e7eb; }
-
     .btn-primary {
       margin-top: 18px; width: 100%;
       padding: 14px; background: #1a56db;
@@ -115,6 +96,197 @@
     }
     .btn-primary:hover:not(:disabled) { background: #1e429f; }
     .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* ── 경로 관리자 ── */
+    .pm-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .pm-count {
+      font-size: 12px;
+      color: #6b7280;
+      background: #f3f4f6;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    .pm-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .pm-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 6px 6px 6px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .pm-row.selected {
+      border-color: #bfdbfe;
+      background: #f0f7ff;
+    }
+
+    .pm-row.new {
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .pm-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .pm-row.selected .pm-num {
+      background: #1a56db;
+      color: #fff;
+    }
+
+    .pm-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s, background 0.2s;
+      min-width: 0;
+    }
+
+    .pm-input:focus {
+      outline: none;
+      border-color: #1a56db;
+    }
+
+    .pm-input.saved {
+      border-color: #059669;
+      background: #f0fdf4;
+    }
+
+    .pm-save-btn {
+      padding: 8px 13px;
+      background: #fff;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #374151;
+      font-family: inherit;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .pm-save-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+    .pm-save-btn.saved { border-color: #059669; color: #059669; background: #f0fdf4; }
+
+    .pm-del-btn {
+      width: 32px;
+      height: 32px;
+      background: #fff;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .pm-del-btn:hover { border-color: #fca5a5; color: #ef4444; background: #fff5f5; }
+
+    /* ── 입력창 추가 드롭다운 버튼 ── */
+    .pm-add-wrap {
+      position: relative;
+      margin-bottom: 6px;
+    }
+
+    .pm-add-btn {
+      width: 100%;
+      padding: 10px 16px;
+      background: #f9fafb;
+      border: 1.5px dashed #d1d5db;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #1a56db;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.15s;
+    }
+
+    .pm-add-btn:hover:not(:disabled) { background: #eff6ff; border-color: #93c5fd; }
+    .pm-add-btn:disabled { color: #9ca3af; cursor: not-allowed; border-color: #e5e7eb; background: #f9fafb; }
+
+    .pm-add-btn-left { display: flex; align-items: center; gap: 6px; }
+    .pm-add-icon { font-size: 16px; font-weight: 700; }
+
+    .pm-add-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 400;
+      background: #e5e7eb;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+
+    /* ── 저장된 경로 힌트 ── */
+    .pm-saved-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #6b7280;
+      min-height: 20px;
+    }
+
+    .pm-saved-hint span {
+      display: inline-block;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin: 2px 2px;
+      cursor: pointer;
+      color: #1e40af;
+      font-size: 11px;
+      transition: background 0.15s;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    .pm-saved-hint span:hover { background: #dbeafe; }
 
     /* ── 소재 목록 ── */
     .section { display: none; }
@@ -268,15 +440,27 @@
 
     <!-- STEP 1: 검색 -->
     <div class="section visible" id="sectionSearch">
-      <label for="query">검색 키워드 또는 사이트/채널 입력</label>
-      <textarea id="query" placeholder="예: 정부 정책 발표&#10;예: 복지 제도 변화&#10;예: 고용노동부 최신 정책"></textarea>
-      <div class="hints">
-        예시 클릭:
-        <span onclick="setQuery('정부 정책 발표')">정부 정책 발표</span>
-        <span onclick="setQuery('복지 제도 변화')">복지 제도 변화</span>
-        <span onclick="setQuery('고용노동부 최신 정책')">고용노동부 최신 정책</span>
-        <span onclick="setQuery('교육부 보도자료')">교육부 보도자료</span>
+
+      <!-- 경로 관리자 -->
+      <div class="pm-header">
+        <label style="margin:0">검색 경로</label>
+        <span class="pm-count" id="pmCount">1 / 10</span>
       </div>
+
+      <div class="pm-list" id="pmList"></div>
+
+      <div class="pm-add-wrap">
+        <button class="pm-add-btn" id="pmAddBtn" onclick="pmAddPath()">
+          <span class="pm-add-btn-left">
+            <span class="pm-add-icon">＋</span>
+            입력창 추가
+          </span>
+          <span class="pm-add-hint" id="pmAddHint">1 / 10</span>
+        </button>
+      </div>
+
+      <div class="pm-saved-hint" id="pmSavedHint"></div>
+
       <button class="btn-primary" id="searchBtn" onclick="searchMaterials()">
         소재 검색 시작
       </button>
@@ -329,14 +513,197 @@
 </div>
 
 <script>
+  /* ────────────────────────────────────────
+     경로 관리자
+  ──────────────────────────────────────── */
+  const PM_MAX   = 10;
+  const PM_KEY   = 'aimax_paths';
+  let pmPaths    = [];   // [{id, value, saved}]
+  let pmNextId   = 1;
+  let pmSelected = null; // selected path id
+
+  function pmInit() {
+    try {
+      const raw = localStorage.getItem(PM_KEY);
+      if (raw) pmPaths = JSON.parse(raw);
+    } catch (e) {}
+
+    if (pmPaths.length === 0) {
+      pmPaths = [{ id: pmNextId++, value: '', saved: false }];
+    } else {
+      pmNextId = Math.max(...pmPaths.map(p => p.id)) + 1;
+    }
+
+    pmSelected = pmPaths[0].id;
+    pmRender();
+  }
+
+  function pmRender() {
+    const list = document.getElementById('pmList');
+    list.innerHTML = '';
+
+    pmPaths.forEach((p, i) => {
+      const isSaved = p.saved && p.value.trim();
+      const isSelected = p.id === pmSelected;
+
+      const row = document.createElement('div');
+      row.className = 'pm-row' + (isSelected ? ' selected' : '');
+      row.dataset.id = p.id;
+
+      row.innerHTML = `
+        <span class="pm-num">${i + 1}</span>
+        <input type="text"
+               class="pm-input${isSaved ? ' saved' : ''}"
+               placeholder="URL 또는 키워드 입력 (예: https://youtube.com/@채널명)"
+               value="${escapeAttr(p.value)}"
+               data-pid="${p.id}">
+        <button class="pm-save-btn${isSaved ? ' saved' : ''}" data-pid="${p.id}">
+          ${isSaved ? '✓ 저장됨' : '저장'}
+        </button>
+        ${pmPaths.length > 1
+          ? `<button class="pm-del-btn" data-pid="${p.id}" title="삭제">×</button>`
+          : ''}
+      `;
+
+      const input   = row.querySelector('.pm-input');
+      const saveBtn = row.querySelector('.pm-save-btn');
+      const delBtn  = row.querySelector('.pm-del-btn');
+
+      input.addEventListener('focus', () => pmSelect(p.id));
+      input.addEventListener('input', () => pmOnInput(p.id, input.value));
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) searchMaterials();
+      });
+
+      saveBtn.addEventListener('click', () => pmSave(p.id));
+      if (delBtn) delBtn.addEventListener('click', () => pmDelete(p.id));
+
+      list.appendChild(row);
+    });
+
+    // 추가 버튼 상태
+    const addBtn  = document.getElementById('pmAddBtn');
+    const addHint = document.getElementById('pmAddHint');
+    const full    = pmPaths.length >= PM_MAX;
+    addBtn.disabled     = full;
+    addHint.textContent = `${pmPaths.length} / ${PM_MAX}`;
+    document.getElementById('pmCount').textContent = `${pmPaths.length} / ${PM_MAX}`;
+
+    // 저장된 경로 힌트 (다른 저장된 경로 빠른 선택)
+    pmRenderSavedHint();
+  }
+
+  function pmRenderSavedHint() {
+    const saved = pmPaths.filter(p => p.saved && p.value.trim());
+    const el    = document.getElementById('pmSavedHint');
+    if (saved.length === 0) { el.innerHTML = ''; return; }
+
+    const label = document.createElement('span');
+    label.style.cssText = 'color:#6b7280;margin-right:4px;background:none;border:none;padding:0;cursor:default;';
+    label.textContent = '저장된 경로:';
+
+    el.innerHTML = '';
+    el.appendChild(label);
+
+    saved.forEach(p => {
+      const tag = document.createElement('span');
+      const short = p.value.length > 30 ? p.value.slice(0, 28) + '…' : p.value;
+      tag.textContent = short;
+      tag.title = p.value;
+      tag.addEventListener('click', () => {
+        pmSelect(p.id);
+        searchMaterials();
+      });
+      el.appendChild(tag);
+    });
+  }
+
+  function pmSelect(id) {
+    pmSelected = id;
+    document.querySelectorAll('.pm-row').forEach(r => {
+      const rid = Number(r.dataset.id);
+      r.classList.toggle('selected', rid === id);
+      r.querySelector('.pm-num').style.background = rid === id ? '#1a56db' : '';
+      r.querySelector('.pm-num').style.color      = rid === id ? '#fff'    : '';
+    });
+  }
+
+  function pmOnInput(id, value) {
+    const p = pmPaths.find(p => p.id === id);
+    if (!p) return;
+    p.value = value;
+    p.saved = false;
+
+    const row = document.querySelector(`.pm-row[data-id="${id}"]`);
+    if (!row) return;
+    row.querySelector('.pm-input').classList.remove('saved');
+    const btn = row.querySelector('.pm-save-btn');
+    btn.textContent = '저장';
+    btn.classList.remove('saved');
+  }
+
+  function pmSave(id) {
+    const p = pmPaths.find(p => p.id === id);
+    if (!p) return;
+
+    const row   = document.querySelector(`.pm-row[data-id="${id}"]`);
+    const input = row ? row.querySelector('.pm-input') : null;
+    const val   = input ? input.value.trim() : p.value.trim();
+
+    if (!val) {
+      if (input) {
+        input.focus();
+        input.style.borderColor = '#ef4444';
+        setTimeout(() => { input.style.borderColor = ''; }, 900);
+      }
+      return;
+    }
+
+    p.value = val;
+    p.saved = true;
+
+    try { localStorage.setItem(PM_KEY, JSON.stringify(pmPaths)); } catch (e) {}
+    pmRender();
+
+    // focus 유지
+    setTimeout(() => {
+      const inp = document.querySelector(`.pm-row[data-id="${id}"] .pm-input`);
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  function pmDelete(id) {
+    if (pmPaths.length <= 1) return;
+    pmPaths = pmPaths.filter(p => p.id !== id);
+    if (pmSelected === id) pmSelected = pmPaths[0].id;
+    try { localStorage.setItem(PM_KEY, JSON.stringify(pmPaths)); } catch (e) {}
+    pmRender();
+  }
+
+  function pmAddPath() {
+    if (pmPaths.length >= PM_MAX) return;
+    const newId = pmNextId++;
+    pmPaths.push({ id: newId, value: '', saved: false });
+    pmSelected = newId;
+    pmRender();
+
+    setTimeout(() => {
+      const rows  = document.querySelectorAll('.pm-row');
+      const last  = rows[rows.length - 1];
+      if (last) {
+        last.classList.add('new');
+        last.querySelector('.pm-input').focus();
+        setTimeout(() => last.classList.remove('new'), 400);
+        last.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 40);
+  }
+
+  /* ────────────────────────────────────────
+     검색 / 기사 흐름
+  ──────────────────────────────────────── */
   let selectedMaterial = null;
   let articleText = "";
-  let lastQuery = "";
-
-  function setQuery(text) {
-    document.getElementById("query").value = text;
-    document.getElementById("query").focus();
-  }
 
   function showSection(id) {
     ["sectionSearch", "sectionMaterials", "sectionArticle"].forEach(s => {
@@ -346,7 +713,6 @@
   }
 
   function setStep(active) {
-    // active: 1, 2, or 3
     for (let i = 1; i <= 3; i++) {
       const el = document.getElementById("step" + i);
       el.classList.remove("active", "done");
@@ -354,16 +720,28 @@
       else if (i === active) el.classList.add("active");
     }
     for (let i = 1; i <= 2; i++) {
-      const line = document.getElementById("line" + i);
-      line.classList.toggle("done", i < active);
+      document.getElementById("line" + i).classList.toggle("done", i < active);
     }
   }
 
   async function searchMaterials() {
-    const query = document.getElementById("query").value.trim();
-    if (!query) { alert("검색 키워드를 입력해주세요."); return; }
+    // 선택된 경로 값 가져오기
+    let query = '';
+    const selPath = pmPaths.find(p => p.id === pmSelected);
+    if (selPath && selPath.value.trim()) {
+      query = selPath.value.trim();
+    } else {
+      const first = pmPaths.find(p => p.value.trim());
+      if (first) { pmSelect(first.id); query = first.value.trim(); }
+    }
 
-    lastQuery = query;
+    if (!query) {
+      alert('검색 경로를 입력해주세요.');
+      const rows = document.querySelectorAll('.pm-row');
+      if (rows.length) rows[0].querySelector('.pm-input').focus();
+      return;
+    }
+
     selectedMaterial = null;
 
     const searchBtn = document.getElementById("searchBtn");
@@ -371,7 +749,7 @@
     searchBtn.textContent = "검색 중...";
 
     const materialList = document.getElementById("materialList");
-    materialList.innerHTML = '<div class="loading-card"><div class="spinner"></div> 정부 공식 자료에서 소재를 검색하고 있습니다...</div>';
+    materialList.innerHTML = '<div class="loading-card"><div class="spinner"></div> 소재를 검색하고 있습니다...</div>';
 
     showSection("sectionMaterials");
     setStep(2);
@@ -379,7 +757,7 @@
     document.getElementById("generateBtn").disabled = true;
 
     try {
-      const res = await fetch("/search", {
+      const res  = await fetch("/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -390,7 +768,6 @@
         materialList.innerHTML = `<div class="loading-card" style="color:#b91c1c;">${data.error || "오류가 발생했습니다."}</div>`;
         return;
       }
-
       renderMaterials(data.materials);
     } catch (e) {
       materialList.innerHTML = '<div class="loading-card" style="color:#b91c1c;">서버 연결에 실패했습니다.</div>';
@@ -404,7 +781,7 @@
     const list = document.getElementById("materialList");
     list.innerHTML = "";
     materials.forEach((m, i) => {
-      const isYoutube = m.source_type === "youtube";
+      const isYoutube  = m.source_type === "youtube";
       const badgeClass = isYoutube ? "badge-youtube" : "badge-news";
       const badgeLabel = isYoutube ? "▶ YouTube" : "📰 뉴스";
       const card = document.createElement("div");
@@ -447,21 +824,21 @@
     setStep(3);
 
     const resultBox = document.getElementById("resultBox");
-    const copyBtn = document.getElementById("copyBtn");
-    const retryBtn = document.getElementById("retryBtn");
+    const copyBtn   = document.getElementById("copyBtn");
+    const retryBtn  = document.getElementById("retryBtn");
     const charCount = document.getElementById("charCount");
 
     document.getElementById("articleSourceTitle").textContent = selectedMaterial.title;
     document.getElementById("copyBanner").classList.remove("visible");
     resultBox.className = "result-box loading";
     resultBox.innerHTML = '<div class="spinner"></div> 기사를 작성하고 있습니다... (1~2분 소요)';
-    copyBtn.disabled = true;
+    copyBtn.disabled  = true;
     retryBtn.disabled = true;
     charCount.textContent = "";
     articleText = "";
 
     try {
-      const res = await fetch("/generate", {
+      const res  = await fetch("/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -487,10 +864,10 @@
 
       const len = articleText.replace(/\s/g, "").length;
       charCount.textContent = `글자 수: ${len.toLocaleString()}자`;
-      charCount.className = len >= 2000 ? "char-count good" : "char-count";
+      charCount.className   = len >= 2000 ? "char-count good" : "char-count";
 
       document.getElementById("copyBanner").classList.add("visible");
-      copyBtn.disabled = false;
+      copyBtn.disabled  = false;
       retryBtn.disabled = false;
     } catch (e) {
       resultBox.className = "result-box error";
@@ -507,16 +884,12 @@
     if (!articleText) return;
     navigator.clipboard.writeText(articleText).then(() => {
       const bannerBtn = document.getElementById("copyBannerBtn");
-      const btn = document.getElementById("copyBtn");
-      bannerBtn.textContent = "복사 완료!";
-      bannerBtn.classList.add("copied");
-      btn.textContent = "복사 완료!";
-      btn.classList.add("copied");
+      const btn       = document.getElementById("copyBtn");
+      bannerBtn.textContent = "복사 완료!"; bannerBtn.classList.add("copied");
+      btn.textContent       = "복사 완료!"; btn.classList.add("copied");
       setTimeout(() => {
-        bannerBtn.textContent = "복사하기";
-        bannerBtn.classList.remove("copied");
-        btn.textContent = "복사하기";
-        btn.classList.remove("copied");
+        bannerBtn.textContent = "복사하기"; bannerBtn.classList.remove("copied");
+        btn.textContent       = "복사하기"; btn.classList.remove("copied");
       }, 2000);
     });
   }
@@ -527,9 +900,14 @@
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  document.getElementById("query").addEventListener("keydown", e => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) searchMaterials();
-  });
+  function escapeAttr(str) {
+    return String(str || '')
+      .replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 초기화
+  pmInit();
 </script>
 </body>
 </html>
