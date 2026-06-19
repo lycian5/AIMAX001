@@ -288,6 +288,46 @@
     }
     .pm-saved-hint span:hover { background: #dbeafe; }
 
+    /* ── 검색 기간 선택 ── */
+    .period-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      margin-bottom: 2px;
+      flex-wrap: wrap;
+    }
+
+    .period-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .period-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .period-btn {
+      padding: 5px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 99px;
+      background: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #6b7280;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .period-btn:hover { border-color: #93c5fd; color: #1a56db; background: #eff6ff; }
+    .period-btn.active { border-color: #1a56db; background: #1a56db; color: #fff; font-weight: 700; }
+
     /* ── 소재 목록 ── */
     .section { display: none; }
     .section.visible { display: block; }
@@ -460,6 +500,18 @@
       </div>
 
       <div class="pm-saved-hint" id="pmSavedHint"></div>
+
+      <!-- 검색 기간 -->
+      <div class="period-wrap">
+        <span class="period-label">검색 기간</span>
+        <div class="period-btns" id="periodBtns">
+          <button class="period-btn" data-period="today"     onclick="setPeriod('today')">오늘</button>
+          <button class="period-btn" data-period="yesterday" onclick="setPeriod('yesterday')">어제</button>
+          <button class="period-btn active" data-period="week" onclick="setPeriod('week')">최근 1주일</button>
+          <button class="period-btn" data-period="month"    onclick="setPeriod('month')">최근 1개월</button>
+          <button class="period-btn" data-period="all"      onclick="setPeriod('all')">전체</button>
+        </div>
+      </div>
 
       <button class="btn-primary" id="searchBtn" onclick="searchMaterials()">
         소재 검색 시작
@@ -700,6 +752,26 @@
   }
 
   /* ────────────────────────────────────────
+     검색 기간
+  ──────────────────────────────────────── */
+  let selectedPeriod = 'week';
+
+  function setPeriod(period) {
+    selectedPeriod = period;
+    document.querySelectorAll('.period-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.period === period);
+    });
+  }
+
+  const PERIOD_LABEL = {
+    today:     '오늘',
+    yesterday: '어제',
+    week:      '최근 1주일',
+    month:     '최근 1개월',
+    all:       '전체',
+  };
+
+  /* ────────────────────────────────────────
      검색 / 기사 흐름
   ──────────────────────────────────────── */
   let selectedMaterial = null;
@@ -753,14 +825,15 @@
 
     showSection("sectionMaterials");
     setStep(2);
-    document.getElementById("materialsTitle").textContent = `"${query}" 검색 결과`;
+    const periodText = PERIOD_LABEL[selectedPeriod] || '전체';
+    document.getElementById("materialsTitle").textContent = `"${query}" 검색 결과 · ${periodText}`;
     document.getElementById("generateBtn").disabled = true;
 
     try {
       const res  = await fetch("/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query, period: selectedPeriod }),
       });
       const data = await res.json();
 

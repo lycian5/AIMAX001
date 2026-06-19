@@ -1,6 +1,8 @@
 import os
 import re
 import requests
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime as parse_rfc2822
 from flask import Flask, request, jsonify, render_template
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -72,19 +74,53 @@ def normalize_query(query):
     return query
 
 
-def search_naver_news(query):
+def get_date_range(period):
+    """기간 문자열을 (after, before) UTC datetime 튜플로 반환"""
+    kst = timezone(timedelta(hours=9))
+    now_kst = datetime.now(kst)
+    if period == "today":
+        start = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+        return start.astimezone(timezone.utc), None
+    elif period == "yesterday":
+        today = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday = today - timedelta(days=1)
+        return yesterday.astimezone(timezone.utc), today.astimezone(timezone.utc)
+    elif period == "week":
+        return datetime.now(timezone.utc) - timedelta(days=7), None
+    elif period == "month":
+        return datetime.now(timezone.utc) - timedelta(days=30), None
+    return None, None
+
+
+def filter_naver_by_date(items, after, before):
+    """Naver RSS pubDate 기준 날짜 필터링"""
+    if not after:
+        return items
+    result = []
+    for item in items:
+        try:
+            pub = parse_rfc2822(item.get("pubDate", ""))
+            if pub >= after and (before is None or pub < before):
+                result.append(item)
+        except Exception:
+            result.append(item)
+    return result
+
+
+def search_naver_news(query, after=None, before=None):
     resp = requests.get(
         "https://openapi.naver.com/v1/search/news.json",
         headers={
             "X-Naver-Client-Id": os.environ.get("NAVER_CLIENT_ID", ""),
             "X-Naver-Client-Secret": os.environ.get("NAVER_CLIENT_SECRET", ""),
         },
-        params={"query": query, "display": 7, "sort": "date"},
+        params={"query": query, "display": 20, "sort": "date"},
         timeout=10,
     )
     resp.raise_for_status()
+    items = filter_naver_by_date(resp.json().get("items", []), after, before)
     results = []
-    for item in resp.json().get("items", []):
+    for item in items[:10]:
         results.append({
             "title": clean_html(item.get("title", "")),
             "summary": clean_html(item.get("description", "")),
@@ -95,7 +131,7 @@ def search_naver_news(query):
     return results
 
 
-def search_youtube(query, channel_id=None):
+def search_youtube(query, channel_id=None, after=None, before=None):
     params = {
         "key": os.environ.get("YOUTUBE_API_KEY", ""),
         "part": "snippet",
@@ -108,6 +144,10 @@ def search_youtube(query, channel_id=None):
         params["q"] = query
     if channel_id:
         params["channelId"] = channel_id
+    if after:
+        params["publishedAfter"] = after.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if before:
+        params["publishedBefore"] = before.strftime("%Y-%m-%dT%H:%M:%SZ")
     resp = requests.get(
         "https://www.googleapis.com/youtube/v3/search",
         params=params,
@@ -140,6 +180,9 @@ def search():
     if not query:
         return jsonify({"error": "검색어를 입력해주세요."}), 400
 
+    period = data.get("period", "all")
+    after, before = get_date_range(period)
+
     yt_handle, yt_keyword = extract_youtube_channel(query)
     search_keyword = normalize_query(query)
     materials = []
@@ -152,17 +195,17 @@ def search():
             if not channel_id:
                 errors.append(f"채널을 찾을 수 없습니다: {yt_handle}")
             else:
-                materials.extend(search_youtube(yt_keyword, channel_id=channel_id))
+                materials.extend(search_youtube(yt_keyword, channel_id=channel_id, after=after, before=before))
         except Exception as e:
             errors.append(f"유튜브 채널 오류: {str(e)}")
     else:
         try:
-            materials.extend(search_naver_news(search_keyword))
+            materials.extend(search_naver_news(search_keyword, after=after, before=before))
         except Exception as e:
             errors.append(f"네이버 뉴스 오류: {str(e)}")
 
         try:
-            materials.extend(search_youtube(search_keyword))
+            materials.extend(search_youtube(search_keyword, after=after, before=before))
         except Exception as e:
             errors.append(f"유튜브 오류: {str(e)}")
 
