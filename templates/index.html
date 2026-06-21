@@ -589,7 +589,7 @@
     <div class="section" id="sectionArticle">
       <div class="section-header">
         <div>
-          <div class="section-title">기사 초안</div>
+          <div class="section-title" id="articleSectionTitle">기사 초안</div>
           <div class="section-sub" id="articleSourceTitle"></div>
         </div>
         <button class="btn-secondary" style="flex:none;padding:8px 16px;font-size:13px;" onclick="backToMaterials()">
@@ -960,10 +960,13 @@
     const retryBtn  = document.getElementById("retryBtn");
     const charCount = document.getElementById("charCount");
 
+    const isYoutube = selectedMaterial.source_type === "youtube";
     document.getElementById("articleSourceTitle").textContent = selectedMaterial.title;
     document.getElementById("copyBanner").classList.remove("visible");
     resultBox.className = "result-box loading";
-    resultBox.innerHTML = '<div class="spinner"></div> 기사를 작성하고 있습니다... (1~2분 소요)';
+    resultBox.innerHTML = isYoutube
+      ? '<div class="spinner"></div> 릴스 스크립트를 작성하고 있습니다...'
+      : '<div class="spinner"></div> 기사를 작성하고 있습니다... (1~2분 소요)';
     copyBtn.disabled  = true;
     retryBtn.disabled = true;
     charCount.textContent = "";
@@ -991,12 +994,23 @@
       }
 
       articleText = data.article || "";
+      const contentType = data.content_type || "article";
+      const isReels = contentType === "reels";
+
+      document.getElementById("articleSectionTitle").textContent =
+        isReels ? "릴스 스크립트 초안" : "기사 초안";
+
       resultBox.className = "result-box";
       resultBox.textContent = articleText;
 
       const len = articleText.replace(/\s/g, "").length;
-      charCount.textContent = `글자 수: ${len.toLocaleString()}자`;
-      charCount.className   = len >= 2000 ? "char-count good" : "char-count";
+      if (isReels) {
+        charCount.textContent = `글자 수: ${len.toLocaleString()}자 (권장: 300~450자)`;
+        charCount.className   = len >= 300 && len <= 450 ? "char-count good" : "char-count";
+      } else {
+        charCount.textContent = `글자 수: ${len.toLocaleString()}자`;
+        charCount.className   = len >= 2000 ? "char-count good" : "char-count";
+      }
 
       document.getElementById("copyBanner").classList.add("visible");
       copyBtn.disabled  = false;

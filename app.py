@@ -24,11 +24,43 @@ ARTICLE_SYSTEM_PROMPT = """당신은 한국 인터넷 신문사의 전문 기자
 [제목]
 (기사 제목)
 
+-----
+
 [기사 본문]
 (2000자 이상의 기사 내용)
 
+-----
+
 [출처]
 - (출처명): (URL)"""
+
+
+REELS_SYSTEM_PROMPT = """당신은 YouTube 릴스/쇼츠 전문 스크립트 작가입니다.
+
+스크립트 작성 규칙:
+1. 원본 내용의 핵심 사실·정보·맥락을 완전히 내 말로 재구성합니다. 원본 문장 직접 인용 절대 금지.
+2. 아래 3단 구성을 반드시 지킵니다.
+   - 훅 (1~2문장): "지금 이 시간 꼭 알아야 할 사실이 있습니다" 형태로 청중의 관심을 강력하게 유발
+   - 본문 (3~6문장): 원본의 핵심 사실·정보를 완전히 내 말로 재구성
+   - CTA (1문장): "더 궁금하다면 프로필을 확인해보세요" 형태
+3. 분량: 300~450자 (공백 제외 기준)
+4. 구어체 1인칭 화자로 작성합니다.
+5. 허용 기호: `, . ? ' "` 만 사용. 그 외 특수기호(!, @, #, *, [ ], { }, | 등) 사용 금지.
+6. 한국어 친근하고 전문적인 어조를 유지하세요.
+
+출력 형식:
+[훅]
+(청중 관심 유발 1~2문장)
+
+-----
+
+[본문]
+(핵심 내용 완전 재구성 3~6문장)
+
+-----
+
+[CTA]
+(채널·프로필 확인 유도 1문장)"""
 
 
 def get_openai_client():
@@ -262,15 +294,23 @@ def generate():
     if not material_title:
         return jsonify({"error": "소재를 선택해주세요."}), 400
 
-    source_label = "유튜브 영상" if source_type == "youtube" else "뉴스 기사"
+    is_youtube = source_type == "youtube"
+    source_label = "유튜브 영상" if is_youtube else "뉴스 기사"
+    system_prompt = REELS_SYSTEM_PROMPT if is_youtube else ARTICLE_SYSTEM_PROMPT
+    content_type = "reels" if is_youtube else "article"
 
-    try:
-        client = get_openai_client()
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": ARTICLE_SYSTEM_PROMPT},
-                {"role": "user", "content": f"""다음 {source_label} 소재를 바탕으로 2000자 이상의 팩트 중심 기사를 작성해주세요.
+    if is_youtube:
+        user_message = f"""다음 유튜브 영상 소재를 바탕으로 릴스/쇼츠 스크립트를 작성해주세요.
+
+선택된 소재:
+- 제목: {material_title}
+- 내용 요약: {material_summary}
+- 출처: {source_name}
+- URL: {material_url}
+
+원본 내용을 완전히 내 말로 재구성하여 훅+본문+CTA 구조의 300~450자 스크립트를 작성해주세요."""
+    else:
+        user_message = f"""다음 {source_label} 소재를 바탕으로 2000자 이상의 팩트 중심 기사를 작성해주세요.
 
 선택된 소재:
 - 제목: {material_title}
@@ -278,12 +318,20 @@ def generate():
 - 출처: {source_name} ({source_label})
 - URL: {material_url}
 
-위 소재를 깊이 있게 분석하고 배경 정보와 의미를 포함하여 2000자 이상의 완성도 높은 기사를 작성해주세요."""},
+위 소재를 깊이 있게 분석하고 배경 정보와 의미를 포함하여 2000자 이상의 완성도 높은 기사를 작성해주세요."""
+
+    try:
+        client = get_openai_client()
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
             ],
             max_tokens=4096,
         )
         article_text = response.choices[0].message.content or ""
-        return jsonify({"article": article_text, "sources": [material_url]})
+        return jsonify({"article": article_text, "sources": [material_url], "content_type": content_type})
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 500
