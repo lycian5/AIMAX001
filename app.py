@@ -14,11 +14,12 @@ app = Flask(__name__)
 ARTICLE_SYSTEM_PROMPT = """당신은 한국 인터넷 신문사의 전문 기자 AI입니다.
 
 기사 작성 규칙:
-1. 제공된 소재를 바탕으로 최소 2000자 이상 기사를 작성하세요.
-2. 일반 신문 기사 형식을 유지하세요 (제목, 본문, 출처 순서).
+1. 소재의 종류(뉴스·유튜브 영상 등)에 상관없이 반드시 2000자 이상의 기사를 작성하세요. 2000자 미만이면 실패입니다.
+2. 신문 기사 형식을 유지하세요 (제목 → 본문 → 출처 순서).
 3. 팩트 중심으로 작성하고 추측이나 의견은 명확히 구분하세요.
 4. 독자의 이해를 돕기 위해 배경 설명과 구체적 수치를 포함하세요.
-5. 기사 말미에 출처 URL을 반드시 명시하세요.
+5. 기사 본문 작성 후 반드시 서브 타이틀 3개와 황금 키워드 30개를 아래 형식으로 추가하세요.
+6. 황금 키워드는 검색 최적화(SEO)를 고려하여 독자가 검색할 만한 핵심 단어·구절 30개를 선정하세요.
 
 출력 형식:
 [제목]
@@ -32,35 +33,19 @@ ARTICLE_SYSTEM_PROMPT = """당신은 한국 인터넷 신문사의 전문 기자
 -----
 
 [출처]
-- (출처명): (URL)"""
-
-
-REELS_SYSTEM_PROMPT = """당신은 YouTube 릴스/쇼츠 전문 스크립트 작가입니다.
-
-스크립트 작성 규칙:
-1. 원본 내용의 핵심 사실·정보·맥락을 완전히 내 말로 재구성합니다. 원본 문장 직접 인용 절대 금지.
-2. 아래 3단 구성을 반드시 지킵니다.
-   - 훅 (1~2문장): "지금 이 시간 꼭 알아야 할 사실이 있습니다" 형태로 청중의 관심을 강력하게 유발
-   - 본문 (3~6문장): 원본의 핵심 사실·정보를 완전히 내 말로 재구성
-   - CTA (1문장): "더 궁금하다면 프로필을 확인해보세요" 형태
-3. 분량: 300~450자 (공백 제외 기준)
-4. 구어체 1인칭 화자로 작성합니다.
-5. 허용 기호: `, . ? ' "` 만 사용. 그 외 특수기호(!, @, #, *, [ ], { }, | 등) 사용 금지.
-6. 한국어 친근하고 전문적인 어조를 유지하세요.
-
-출력 형식:
-[훅]
-(청중 관심 유발 1~2문장)
+- (출처명): (URL)
 
 -----
 
-[본문]
-(핵심 내용 완전 재구성 3~6문장)
+[서브 타이틀]
+1. (서브 타이틀 1)
+2. (서브 타이틀 2)
+3. (서브 타이틀 3)
 
 -----
 
-[CTA]
-(채널·프로필 확인 유도 1문장)"""
+[황금 키워드]
+(키워드1, 키워드2, 키워드3, ... 총 30개를 쉼표로 구분)"""
 
 
 def get_openai_client():
@@ -294,23 +279,9 @@ def generate():
     if not material_title:
         return jsonify({"error": "소재를 선택해주세요."}), 400
 
-    is_youtube = source_type == "youtube"
-    source_label = "유튜브 영상" if is_youtube else "뉴스 기사"
-    system_prompt = REELS_SYSTEM_PROMPT if is_youtube else ARTICLE_SYSTEM_PROMPT
-    content_type = "reels" if is_youtube else "article"
+    source_label = "유튜브 영상" if source_type == "youtube" else "뉴스 기사"
 
-    if is_youtube:
-        user_message = f"""다음 유튜브 영상 소재를 바탕으로 릴스/쇼츠 스크립트를 작성해주세요.
-
-선택된 소재:
-- 제목: {material_title}
-- 내용 요약: {material_summary}
-- 출처: {source_name}
-- URL: {material_url}
-
-원본 내용을 완전히 내 말로 재구성하여 훅+본문+CTA 구조의 300~450자 스크립트를 작성해주세요."""
-    else:
-        user_message = f"""다음 {source_label} 소재를 바탕으로 2000자 이상의 팩트 중심 기사를 작성해주세요.
+    user_message = f"""다음 {source_label} 소재를 바탕으로 2000자 이상의 팩트 중심 기사를 작성해주세요.
 
 선택된 소재:
 - 제목: {material_title}
@@ -318,20 +289,20 @@ def generate():
 - 출처: {source_name} ({source_label})
 - URL: {material_url}
 
-위 소재를 깊이 있게 분석하고 배경 정보와 의미를 포함하여 2000자 이상의 완성도 높은 기사를 작성해주세요."""
+위 소재를 깊이 있게 분석하고 배경 정보와 의미를 포함하여 2000자 이상의 완성도 높은 기사를 작성하고, 서브 타이틀 3개와 황금 키워드 30개도 반드시 포함해주세요."""
 
     try:
         client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": ARTICLE_SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
             ],
             max_tokens=4096,
         )
         article_text = response.choices[0].message.content or ""
-        return jsonify({"article": article_text, "sources": [material_url], "content_type": content_type})
+        return jsonify({"article": article_text, "sources": [material_url]})
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 500
