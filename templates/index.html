@@ -288,6 +288,36 @@
     }
     .pm-saved-hint span:hover { background: #dbeafe; }
 
+    /* ── 검색 키워드 ── */
+    .kw-wrap { margin-top: 16px; }
+
+    .kw-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .kw-input:focus { outline: none; border-color: #1a56db; }
+
+    .kw-hints {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .kw-hints span {
+      display: inline-block;
+      background: #f3f4f6;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin: 2px 2px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .kw-hints span:hover { background: #e5e7eb; }
+
     /* ── 검색 기간 선택 ── */
     .period-wrap {
       display: flex;
@@ -501,6 +531,20 @@
 
       <div class="pm-saved-hint" id="pmSavedHint"></div>
 
+      <!-- 검색 키워드 -->
+      <div class="kw-wrap">
+        <label for="keywordInput" style="margin-bottom:8px;">검색 키워드</label>
+        <input type="text" id="keywordInput" class="kw-input"
+               placeholder="검색할 키워드를 입력하세요 (예: 정책 발표, 최신 뉴스)">
+        <div class="kw-hints">
+          예시:
+          <span onclick="setKeyword('정부 정책 발표')">정부 정책 발표</span>
+          <span onclick="setKeyword('복지 제도 변화')">복지 제도 변화</span>
+          <span onclick="setKeyword('고용노동부 최신 정책')">고용노동부 최신 정책</span>
+          <span onclick="setKeyword('교육부 보도자료')">교육부 보도자료</span>
+        </div>
+      </div>
+
       <!-- 검색 기간 -->
       <div class="period-wrap">
         <span class="period-label">검색 기간</span>
@@ -606,7 +650,7 @@
         <span class="pm-num">${i + 1}</span>
         <input type="text"
                class="pm-input${isSaved ? ' saved' : ''}"
-               placeholder="URL 또는 키워드 입력 (예: https://youtube.com/@채널명)"
+               placeholder="사이트 URL 또는 유튜브 채널 (예: https://youtube.com/@채널명)"
                value="${escapeAttr(p.value)}"
                data-pid="${p.id}">
         <button class="pm-save-btn${isSaved ? ' saved' : ''}" data-pid="${p.id}">
@@ -664,7 +708,7 @@
       tag.title = p.value;
       tag.addEventListener('click', () => {
         pmSelect(p.id);
-        searchMaterials();
+        searchMaterials(); // keyword 입력값도 함께 전송됨
       });
       el.appendChild(tag);
     });
@@ -796,21 +840,27 @@
     }
   }
 
+  function setKeyword(text) {
+    document.getElementById('keywordInput').value = text;
+    document.getElementById('keywordInput').focus();
+  }
+
   async function searchMaterials() {
     // 선택된 경로 값 가져오기
-    let query = '';
+    let path = '';
     const selPath = pmPaths.find(p => p.id === pmSelected);
     if (selPath && selPath.value.trim()) {
-      query = selPath.value.trim();
+      path = selPath.value.trim();
     } else {
       const first = pmPaths.find(p => p.value.trim());
-      if (first) { pmSelect(first.id); query = first.value.trim(); }
+      if (first) { pmSelect(first.id); path = first.value.trim(); }
     }
 
-    if (!query) {
-      alert('검색 경로를 입력해주세요.');
-      const rows = document.querySelectorAll('.pm-row');
-      if (rows.length) rows[0].querySelector('.pm-input').focus();
+    const keyword = document.getElementById('keywordInput').value.trim();
+
+    if (!path && !keyword) {
+      alert('검색 경로 또는 키워드를 입력해주세요.');
+      document.getElementById('keywordInput').focus();
       return;
     }
 
@@ -825,15 +875,16 @@
 
     showSection("sectionMaterials");
     setStep(2);
-    const periodText = PERIOD_LABEL[selectedPeriod] || '전체';
-    document.getElementById("materialsTitle").textContent = `"${query}" 검색 결과 · ${periodText}`;
+    const displayText = keyword || path;
+    const periodText  = PERIOD_LABEL[selectedPeriod] || '전체';
+    document.getElementById("materialsTitle").textContent = `"${displayText}" 검색 결과 · ${periodText}`;
     document.getElementById("generateBtn").disabled = true;
 
     try {
       const res  = await fetch("/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, period: selectedPeriod }),
+        body: JSON.stringify({ path, keyword, period: selectedPeriod }),
       });
       const data = await res.json();
 

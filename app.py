@@ -181,27 +181,36 @@ def index():
 
 @app.route("/search", methods=["POST"])
 def search():
-    data = request.get_json()
-    query = data.get("query", "").strip()
-    if not query:
-        return jsonify({"error": "검색어를 입력해주세요."}), 400
+    data    = request.get_json()
+    # path = 어디서 (사이트 URL / 유튜브 채널), keyword = 무엇을
+    # 하위 호환: 구버전 클라이언트가 보내는 'query' 필드도 지원
+    path    = (data.get("path") or data.get("query", "")).strip()
+    keyword = data.get("keyword", "").strip()
+    period  = data.get("period", "all")
 
-    period = data.get("period", "all")
+    if not path and not keyword:
+        return jsonify({"error": "검색 경로 또는 키워드를 입력해주세요."}), 400
+
     after, before = get_date_range(period)
 
-    yt_handle, yt_keyword = extract_youtube_channel(query)
-    search_keyword = normalize_query(query)
-    materials = []
-    errors = []
+    yt_handle = None
+    if path:
+        yt_handle, _ = extract_youtube_channel(path)
 
-    # 유튜브 채널 URL인 경우: 채널 내부에서만 검색
+    # 실제 검색에 쓸 키워드: keyword 우선, 없으면 path에서 추출
+    search_keyword = keyword or (normalize_query(path) if path and not yt_handle else "")
+
+    materials = []
+    errors    = []
+
+    # 유튜브 채널 URL인 경우: 채널 내부에서 keyword로 검색
     if yt_handle:
         try:
             channel_id = get_youtube_channel_id(yt_handle)
             if not channel_id:
                 errors.append(f"채널을 찾을 수 없습니다: {yt_handle}")
             else:
-                materials.extend(search_youtube(yt_keyword, channel_id=channel_id, after=after, before=before))
+                materials.extend(search_youtube(search_keyword, channel_id=channel_id, after=after, before=before))
         except Exception as e:
             errors.append(f"유튜브 채널 오류: {str(e)}")
     else:
@@ -211,10 +220,12 @@ def search():
             except Exception as e:
                 errors.append(f"네이버 뉴스 오류: {str(e)}")
 
-        try:
-            materials.extend(search_youtube(search_keyword, after=after, before=before))
-        except Exception as e:
-            errors.append(f"유튜브 오류: {str(e)}")
+            try:
+                materials.extend(search_youtube(search_keyword, after=after, before=before))
+            except Exception as e:
+                errors.append(f"유튜브 오류: {str(e)}")
+        else:
+            errors.append("검색 키워드를 입력해주세요.")
 
     if not materials:
         return jsonify({"error": "검색 결과가 없습니다. " + " / ".join(errors)}), 404
