@@ -127,12 +127,20 @@ def search_naver_news(query, after=None, before=None):
     items = filter_naver_by_date(resp.json().get("items", []), after, before)
     results = []
     for item in items[:10]:
+        pub_date = ""
+        try:
+            pub = parse_rfc2822(item.get("pubDate", ""))
+            kst = timezone(timedelta(hours=9))
+            pub_date = pub.astimezone(kst).strftime("%Y.%m.%d")
+        except Exception:
+            pass
         results.append({
             "title": clean_html(item.get("title", "")),
             "summary": clean_html(item.get("description", "")),
             "url": item.get("originallink") or item.get("link", ""),
             "source_type": "news",
             "source_name": item.get("name", "네이버 뉴스"),
+            "pub_date": pub_date,
         })
     return results
 
@@ -162,14 +170,23 @@ def search_youtube(query, channel_id=None, after=None, before=None):
     resp.raise_for_status()
     results = []
     for item in resp.json().get("items", []):
-        snippet = item.get("snippet", {})
+        snippet  = item.get("snippet", {})
         video_id = item.get("id", {}).get("videoId", "")
+        pub_date = ""
+        try:
+            published_at = snippet.get("publishedAt", "")
+            pub = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            kst = timezone(timedelta(hours=9))
+            pub_date = pub.astimezone(kst).strftime("%Y.%m.%d")
+        except Exception:
+            pass
         results.append({
             "title": snippet.get("title", ""),
             "summary": snippet.get("description", "")[:200],
             "url": f"https://www.youtube.com/watch?v={video_id}",
             "source_type": "youtube",
             "source_name": snippet.get("channelTitle", "YouTube"),
+            "pub_date": pub_date,
         })
     return results
 
