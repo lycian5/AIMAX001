@@ -1,6 +1,7 @@
 import os
 import re
 import requests
+import feedparser
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime as parse_rfc2822
 from flask import Flask, request, jsonify, render_template
@@ -130,6 +131,75 @@ def filter_naver_by_date(items, after, before):
     return result
 
 
+def search_google_news(query, after=None, before=None):
+    encoded = query.replace(" ", "+")
+    url = f"https://news.google.com/rss/search?q={encoded}&hl=ko&gl=KR&ceid=KR:ko"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        resp = requests.get(url, headers=headers, timeout=15)
+        resp.raise_for_status()
+    except Exception:
+        return []
+
+    feed = feedparser.parse(resp.text)
+    kst = timezone(timedelta(hours=9))
+    results = []
+    for entry in feed.entries[:10]:
+        pub_dt = None
+        try:
+            t = entry.get("published_parsed")
+            if t:
+                pub_dt = datetime(*t[:6], tzinfo=timezone.utc)
+        except Exception:
+            pass
+
+        if after and pub_dt and pub_dt < after:
+            continue
+        if before and pub_dt and pub_dt >= before:
+            continue
+
+        pub_date = pub_dt.astimezone(kst).strftime("%Y.%m.%d") if pub_dt else ""
+        summary = re.sub(r"<[^>]+>", "", entry.get("summary", ""))[:300]
+        src = entry.get("source")
+        if src and isinstance(src, dict):
+            source_name = src.get("title", "Google 뉴스")
+        elif isinstance(src, str):
+            source_name = src
+        else:
+            source_name = "Google 뉴스"
+
+        results.append({
+            "title": entry.get("title", ""),
+            "summary": summary,
+            "url": entry.get("link", ""),
+            "source_type": "news",
+            "source_name": source_name,
+            "pub_date": pub_date,
+        })
+    return results
+
+
+def fetch_full_content(url):
+    """Jina Reader로 기사 원문 전문 추출 (실패 시 빈 문자열)."""
+    if not url or not url.startswith("http"):
+        return ""
+    try:
+        resp = requests.get(
+            f"https://r.jina.ai/{url}",
+            headers={
+                "X-Return-Format": "markdown",
+                "Accept": "text/plain",
+                "X-Remove-Selector": "nav, footer, .ad, .advertisement",
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200 and len(resp.text) > 100:
+            return resp.text[:4000]
+    except Exception:
+        pass
+    return ""
+
+
 def search_naver_news(query, after=None, before=None):
     resp = requests.get(
         "https://openapi.naver.com/v1/search/news.json",
@@ -255,6 +325,11 @@ def search():
                 errors.append(f"네이버 뉴스 오류: {str(e)}")
 
             try:
+                materials.extend(search_google_news(search_keyword, after=after, before=before))
+            except Exception as e:
+                errors.append(f"Google 뉴스 오류: {str(e)}")
+
+            try:
                 materials.extend(search_youtube(search_keyword, after=after, before=before))
             except Exception as e:
                 errors.append(f"유튜브 오류: {str(e)}")
@@ -264,7 +339,16 @@ def search():
     if not materials:
         return jsonify({"error": "검색 결과가 없습니다. " + " / ".join(errors)}), 404
 
-    return jsonify({"materials": materials})
+    # URL 중복 제거 (네이버·Google News 겹침 방지)
+    seen = set()
+    deduped = []
+    for m in materials:
+        url = m.get("url", "")
+        if url not in seen:
+            seen.add(url)
+            deduped.append(m)
+
+    return jsonify({"materials": deduped})
 
 
 @app.route("/generate", methods=["POST"])
@@ -281,11 +365,22 @@ def generate():
 
     source_label = "유튜브 영상" if source_type == "youtube" else "뉴스 기사"
 
+    # 뉴스 기사인 경우 Jina Reader로 원문 전문 추출 (실패 시 요약으로 fallback)
+    full_content = ""
+    if source_type == "news" and material_url:
+        full_content = fetch_full_content(material_url)
+
+    content_section = (
+        f"- 원문 내용:\n{full_content}"
+        if full_content
+        else f"- 내용 요약: {material_summary}"
+    )
+
     user_message = f"""다음 {source_label} 소재를 바탕으로 2000자 이상의 팩트 중심 기사를 작성해주세요.
 
 선택된 소재:
 - 제목: {material_title}
-- 내용 요약: {material_summary}
+{content_section}
 - 출처: {source_name} ({source_label})
 - URL: {material_url}
 
